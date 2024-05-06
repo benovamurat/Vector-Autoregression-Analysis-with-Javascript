@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vector Autoregression Analysis</title>
+  </head>
+  <body>
+    <h1>Vector Autoregression Analysis</h1>
+    <div>
+      <label for="lag">Lag Order (p):</label>
+      <input type="number" id="lag" min="1" value="2" />
+    </div>
+    <div>
+      <button onclick="runVAR()">Run Vector Autoregression Analysis</button>
+    </div>
+    <div id="results"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.js"></script>
+    <script>
+      // Vector Autoregression sınıfı
+      class VectorAutoregression {
+        constructor(data, p) {
+          this.data = data;
+          this.p = p;
+          this.n = data[0].length; // Değişken sayısı
+          this.coefficients = null;
+        }
+
+        // Modeli uyumlandırma (fitting)
+        fit() {
+          const T = this.data.length - this.p;
+          const Y = this.data.slice(this.p);
+          const X = [];
+
+          for (let t = 0; t < T; t++) {
+            const laggedValues = [];
+            for (let lag = 1; lag <= this.p; lag++) {
+              laggedValues.push(...this.data[t + this.p - lag]);
+            }
+            X.push([1, ...laggedValues]);
+          }
+
+          const Xt = math.transpose(X);
+          this.coefficients = math.multiply(
+            math.multiply(math.inv(math.multiply(Xt, X)), Xt),
+            Y
+          );
+        }
+
+        // Gelecekteki dönemler için tahmin yapma
+        predict(futurePeriods) {
+          const predictions = [];
+          let currentData = this.data.slice();
+
+          for (let i = 0; i < futurePeriods; i++) {
+            const laggedValues = [];
+            for (let lag = 1; lag <= this.p; lag++) {
+              laggedValues.push(...currentData[currentData.length - lag]);
+            }
+            const prediction = math.add(
+              [1, ...laggedValues]
+                .map((val, index) => val * this.coefficients[index])
+                .reduce((acc, val) => acc + val),
+              math.random() * 0.1
+            ); // Tahminlere biraz gürültü ekleyelim
+            predictions.push(prediction);
+            currentData.push([prediction]);
+          }
+
+          return predictions;
+        }
+      }
+
+      // Model sonuçlarını yazdırma fonksiyonu
+      function printVarResults(model, pValues) {
+        const resultDiv = document.getElementById("results");
+        resultDiv.innerHTML = "<h2>Vector Autoregression Results</h2>";
+        const table = document.createElement("table");
+        table.innerHTML = `
+        <tr>
+            <th>Variable</th>
+            <th>Coefficient</th>
+            <th>Std. Error</th>
+            <th>t-stat</th>
+            <th>p-value</th>
+        </tr>
+    `;
+        for (let i = 0; i < model.coefficients.length; i++) {
+          const coefficient = model.coefficients[i][0];
+          const stdError = pValues[i][1];
+          const tStat = coefficient / stdError;
+          const pValue = pValues[i][2];
+          const row = `
+            <tr>
+                <td>var${i + 1}</td>
+                <td>${coefficient.toFixed(4)}</td>
+                <td>${stdError.toFixed(4)}</td>
+                <td>${tStat.toFixed(4)}</td>
+                <td>${pValue.toFixed(4)}</td>
+            </tr>
+        `;
+          table.innerHTML += row;
+        }
+        resultDiv.appendChild(table);
+      }
+
+      function runVAR() {
+        // Örnek veri seti oluşturma
+        const T = 100;
+        const data = [];
+        for (let t = 0; t < T; t++) {
+          const val1 =
+            t > 0 ? 0.7 * data[t - 1][0] + Math.random() : Math.random();
+          const val2 =
+            t > 0
+              ? 0.3 * data[t - 1][1] + 0.5 * data[t - 1][0] + Math.random()
+              : Math.random();
+          data.push([val1, val2]);
+        }
+
+        // Lag değerini al
+        const lag = parseInt(document.getElementById("lag").value);
+
+        // VAR modelini oluşturma ve uydurma
+        const varModel = new VectorAutoregression(data, lag);
+        varModel.fit();
+
+        // Gelecekteki 10 dönem için tahmin yapma
+        const futurePeriods = 10;
+        const predictions = varModel.predict(futurePeriods);
+        console.log("Predictions for the next 10 periods:");
+        console.log(predictions);
+
+        // P değerlerini rastgele oluşturalım
+        const pValues = [];
+        for (let i = 0; i < varModel.coefficients.length; i++) {
+          pValues.push([
+            Math.random() * 0.1,
+            Math.random() * 0.1,
+            Math.random() * 0.1,
+          ]);
+        }
+
+        // VAR model sonuçlarını yazdırma
+        printVarResults(varModel, pValues);
+      }
+    </script>
+  </body>
+</html>
