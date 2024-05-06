@@ -20,9 +20,7 @@ This tool relies on the following external libraries:
 
 ## Files
 
-- `index.html`: The main HTML file containing the user interface and script references.
-- `vector_autoregression.js`: The JavaScript file containing the VectorAutoregression class definition and analysis functions.
-- `styles.css`: The CSS file containing styles for the HTML elements.
+- `index.html`: The main HTML file containing the user interface and script references. The JavaScript (inline) containing the VectorAutoregression class definition and analysis functions.
 
 ## Contributing
 
